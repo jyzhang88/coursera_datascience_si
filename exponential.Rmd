@@ -1,0 +1,155 @@
+---
+title: "Exponential Distribution"
+author: "Zhang Jinyan"
+date: "21/10/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      echo = FALSE,
+                      warning = FALSE,
+                      fig.align = "center",
+                      fig.path = "fig/",
+                      cache.path = "cache/",
+                      cache = TRUE)
+```
+
+## Exponential Distribution
+
+A exponential distribution is a *probability distribution* that describes the time between events in a Poisson process, i.e. **a process in which events occur continuously and independently at a constant average rate, λ**. The only **parameter** for exponential distribution is λ. 
+
+e.g. radioactive decay
+
+A Poisson distribution is a probability distribution that expresses **the probability of a given number of events occuring at a fixed interval of time and/or space if these events occur with a known average rate** and independently of the time since the last event. The parameter, known average rate, for Poisson distribution is also λ. 
+
+e.g. number of patients per 100 hospital days
+
+### Example 
+
+We are going to create a set of data having an exponential distribution using `rexp` function. 
+
+Say for example the events we are measuring is the time between engine breakdown of a machine. Assume we have prior details about the breakdown rate, say the average time between breakdowns is 10 months. The breakdown rate is 0.1 breakdown/month. This λ = 0.1 will be the parameter defining this exponential distribution. 
+
+We'll also show the plot and density (blue curve) of the distribution. 
+
+```{r "expo1"}
+set.seed(100)
+n <- 50
+expo <- rexp(n, 0.1)
+h1 <- hist(expo, 
+           xlab = "Time between engine breakdown (months)",
+           main = "Histogram of 50 breakdowns")
+
+xfit <- seq(min(expo), max(expo), length = n)
+yfit <- dnorm(xfit, mean = mean(expo), sd = sd(expo))
+yfit <- yfit * diff(h1$mids[1:2]) * length(expo)
+lines(xfit, yfit, col = "blue", lwd = 1.5)
+```
+
+In this set of simulation of 50 breakdowns, you'll be expecting an average `r round(mean(expo), 2)` months between each breakdown, since you experienced 50 breakdowns in `r round(sum(expo), 2)` months. This number is slightly different from the 10 months between breakdowns previously assumed. 
+
+So now let's run 1000 simulations of this 50 breakdowns situation. We'll then have a series of averages of months between breakdowns. And we'll also draw 3 lines down this plot.
+
+```{r "expo2"}
+nosim <- 1000
+expo.thou <- matrix(rexp(n * nosim, 0.1), ncol = 1000)
+mean.expo <- apply(expo.thou, 2, mean)
+h2 <- hist(mean.expo, 
+           breaks = 25,
+           xlab = "Average time between engine breakdown (months)",
+           main = "Histogram of 1000 simulations of 50 breakdowns")
+
+xfit <- seq(min(mean.expo), max(mean.expo), length = nosim)
+yfit <- dnorm(xfit, mean = mean(mean.expo), sd = sd(mean.expo))
+yfit <- yfit * diff(h2$mids[1:2]) * length(mean.expo)
+lines(xfit, yfit, col = "orange", lwd = 1.5)
+
+abline(v = 10, col = "red", lwd = 4)
+abline(v = mean(expo), col = "green", lwd = 1.5)
+abline(v = mean(mean.expo), col = "blue", lwd = 1.5)
+legend("topright", 
+       legend = c("Theoretical mean", 
+                  "Mean of one distribution",
+                  "Mean of thousand distributions"),
+       col = c("red", 
+               "green", 
+               "blue"),
+       seg.len = 1, 
+       lty = 1, 
+       lwd = 0.8)
+
+mean.thou <- mean(mean.expo)
+var.expo <- var(expo)
+var.thou <- var(mean.expo)
+```
+
+The distribution now looks very different from the exponential distribution. This distribution leans towards the normal distribution. This behavior is governed by a theorem known as **Central Limit Theorem (CLT)**. 
+
+Central Limit Theorem states that for independent random variables, the sum of these variables tends towards normal distribution even if the variables themselves are not normally distributed initially. 
+
+And so if you were to look at the red and blue lines, you can tell where the means are for the two distributions. Note that the red and blue lines are superimposed, blue is on top of red. So now we look at the mean and variance of the two distributions.
+
+Mean of single iterate = `r round(mean(expo), 2)`\
+Mean of 1000 iterates = `r round(mean(mean.expo), 2)`\
+Variance of single iterate = `r round(var(expo), 2)`\
+Variance of 1000 iterates = `r round(var(mean.expo), 2)`
+
+### Exponential Distribution Probability
+
+On the other hand, since exponential distribution is a probability distribution, you would be able to find the probability of a given event, using the function `pexp`. The plots below show you the cumulative probability function of the distributions
+
+```{r "expo3"}
+par(mfrow = c(1, 2),
+    mar = c(2, 0, 3, 0),
+    oma = c(3, 6, 4, 1))
+
+probs.expo <- pexp(1:50, 0.1)
+sequ <- seq(1, 50, 1)
+plot(sequ, probs.expo, 
+     ylab = "",
+     xlab = "",
+     main = "Single Iterate",
+     type = "l",
+     lwd = 2,
+     col = "green")
+lines(c(10, 10, 0), c(0, pexp(10, 0.1), pexp(10, 0.1)), lty = "dashed", lwd = 2)
+# box("plot", col = "blue")
+
+probs.thou <- pnorm(1:50, mean = mean.thou, sd = sqrt(var.thou))
+plot(sequ, probs.thou, 
+     type = "l",
+     ylab = "",
+     xlab = "",
+     main = "1000 Iterates",
+     yaxt = "n",
+     lwd = 2,
+     col = "blue")
+lines(c(10, 10, 0), c(0, 0.5, 0.5), lty = "dashed", lwd = 2)
+# box("plot", col = "blue")
+# box("inner", col = "red")
+mtext("Probability", 
+      side = 2, 
+      cex = 1.5, 
+      outer = TRUE, 
+      line = 3)
+mtext("Time between engine breakdown (month)", 
+      side = 1, 
+      cex = 1.5, 
+      line = 1, 
+      outer = TRUE)
+mtext("Cumulative Probability Distribution",
+      side = 3,
+      cex = 2,
+      outer = TRUE,
+      line = 1)
+```
+
+Probability that a breakdown occurs within 3 months = `r round(pexp(3, 0.1), 2)`\
+Probability that a breakdown occurs within 6 months = `r round(pexp(6, 0.1), 2)`\
+Probability that a breakdown occurs within 12 months = `r round(pexp(12, 0.1), 2)`\
+Probability that a breakdown occurs within 24 months = `r round(pexp(24, 0.1), 2)`
+
+Although the average time between breakdowns is 10 months, the probability of a certain breakdown occuring within 10 months is `r round(pexp(10, 0.1), 2)`. And as the number of months increases without a breakdown, the probability of a breakdown happening increases. Alternatively, you can phrase it another way. Given a 24 months period, the probability of a breakdown happening is `r round(pexp(24, 0.1), 2)`. 
+
+And lastly, by the CLT, over the long run, the probability of a breakdown occuring within 10 months is `r round(pnorm(10, mean(mean.expo), var(mean.expo)), 2)`.
